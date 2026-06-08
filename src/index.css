@@ -1,19 +1,139 @@
 @import "tailwindcss";
 
+/* ---- Mansa Tech brand tokens (from brand style guide) ---- */
 @theme {
-  --color-ink: #0b0f17;
-  --color-panel: #131a26;
-  --color-edge: #243043;
-  --color-accent: #5b9bff;
-  --color-meta: #4f8cff;
-  --color-google: #34c98a;
-  --color-linkedin: #c98a34;
+  --color-orange: #cf4500;       /* primary accent */
+  --color-orange-btn: #c03c00;   /* button fill */
+  --color-orange-deep: #c02b0a;  /* hover / pressed */
+  --color-orange-bright: #e67e22;/* secondary highlight */
+  --color-peach: #edb293;        /* tint */
+  --color-ink: #111111;          /* near-black: hero, headings */
+  --color-charcoal: #222222;
+  --color-text: #333333;         /* body copy */
+  --color-muted: #afafaf;        /* captions, placeholders */
+  --color-light: #efefef;        /* surfaces, dividers, fields */
+  --color-white: #ffffff;
 }
 
-html, body, #root {
-  height: 100%;
+:root {
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Ubuntu', Helvetica, sans-serif;
 }
+
+html, body, #root { height: 100%; }
+
 body {
+  margin: 0;
+  background-color: var(--color-light);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.2px;
+}
+
+/* ---- Brand component classes (sharp corners everywhere) ---- */
+
+/* Dark hero band */
+.brand-hero {
   background-color: var(--color-ink);
-  color: #e6edf6;
+  color: var(--color-white);
+}
+.brand-hero h1 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 5px;
+  line-height: 1.05;
+  color: var(--color-white);
+}
+.brand-hero h1 b { color: var(--color-orange); font-weight: 600; }
+.brand-hero .sub {
+  color: var(--color-muted);
+  font-size: 13px;
+  letter-spacing: 1.2px;
+}
+
+/* White card / panel */
+.panel {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.08);
+  border-radius: 0;
+}
+
+/* Small orange kicker label above a section title */
+.kicker {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--color-orange);
+}
+
+/* Section heading inside a panel */
+.panel-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+/* Field label */
+.field-label {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Inputs */
+.field {
+  width: 100%;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-light);
+  border-radius: 0;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field:focus { border-color: var(--color-orange); }
+.field::placeholder { color: var(--color-muted); }
+
+/* Primary button — sharp, orange, uppercase Oswald */
+.btn-brand {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background-color: var(--color-orange-btn);
+  color: var(--color-white);
+  border: 1px solid var(--color-orange-btn);
+  border-radius: 0;
+  padding: 12px 30px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.btn-brand:hover:not(:disabled) {
+  background-color: var(--color-orange-deep);
+  border-color: var(--color-orange-deep);
+}
+.btn-brand:disabled { opacity: 0.5; cursor: not-allowed; }
+
+code {
+  background-color: var(--color-light);
+  padding: 1px 6px;
+  font-size: 12.5px;
+  color: var(--color-orange-deep);
+  font-family: 'Oswald', monospace;
+  letter-spacing: 0.5px;
 }

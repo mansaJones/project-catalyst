@@ -9,16 +9,26 @@ interface Props {
   onEvaluate: () => void
 }
 
-export function CreativeInputBoard({ brief, hooks, loading = false, onBriefChange, onHookChange, onEvaluate }: Props) {
+export function CreativeInputBoard({
+  brief,
+  hooks,
+  loading = false,
+  onBriefChange,
+  onHookChange,
+  onEvaluate,
+}: Props) {
   return (
-    <section className="rounded-xl border border-[var(--color-edge)] bg-[var(--color-panel)] p-5">
-      <h2 className="mb-1 text-lg font-semibold">1 · Creative Input Board</h2>
-      <p className="mb-4 text-sm text-slate-400">Describe the offer, then drop in three competing hooks.</p>
+    <section className="panel p-6 sm:p-8">
+      <p className="kicker">01 · Input</p>
+      <h2 className="panel-title mt-1">Creative Input Board</h2>
+      <p className="mt-2 text-sm text-[var(--color-text)]">
+        Describe the offer, then drop in three competing hooks.
+      </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Product / service">
           <input
-            className={inputCls}
+            className="field"
             value={brief.product}
             placeholder="e.g. AI scheduling assistant"
             onChange={(e) => onBriefChange({ ...brief, product: e.target.value })}
@@ -26,7 +36,7 @@ export function CreativeInputBoard({ brief, hooks, loading = false, onBriefChang
         </Field>
         <Field label="Audience">
           <input
-            className={inputCls}
+            className="field"
             value={brief.audience}
             placeholder="e.g. ops leads at mid-market SaaS"
             onChange={(e) => onBriefChange({ ...brief, audience: e.target.value })}
@@ -38,7 +48,7 @@ export function CreativeInputBoard({ brief, hooks, loading = false, onBriefChang
         {hooks.map((h, i) => (
           <Field key={h.id} label={`Hook ${i + 1}`}>
             <textarea
-              className={`${inputCls} min-h-[60px] resize-y`}
+              className="field min-h-[58px] resize-y"
               value={h.text}
               placeholder="One ad angle…"
               onChange={(e) => onHookChange(h.id, e.target.value)}
@@ -47,24 +57,17 @@ export function CreativeInputBoard({ brief, hooks, loading = false, onBriefChang
         ))}
       </div>
 
-      <button
-        onClick={onEvaluate}
-        disabled={loading}
-        className="mt-4 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-      >
+      <button onClick={onEvaluate} disabled={loading} className="btn-brand mt-6">
         {loading ? 'Evaluating…' : 'Evaluate hooks'}
       </button>
     </section>
   )
 }
 
-const inputCls =
-  'w-full rounded-lg border border-[var(--color-edge)] bg-[var(--color-ink)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]'
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="field-label mb-1 block">{label}</span>
       {children}
     </label>
   )
