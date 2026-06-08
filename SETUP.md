@@ -93,3 +93,37 @@ npm run dev:all               # runs Vite + the API server together
 - `.env` is gitignored. Do not commit it.
 - Default model is `claude-haiku-4-5-20251001`; override with `ANTHROPIC_MODEL` in `.env`.
 - The rule engine remains the fallback, so the keyless static deploy still works.
+
+## Fixing `npm install` errors in Google Drive (TAR_ENTRY_ERROR)
+
+If `npm install` spits out `npm WARN tar TAR_ENTRY_ERROR UNKNOWN: ... write`,
+that's Google Drive choking on the thousands of files in `node_modules`.
+Move `node_modules` onto local disk with a junction — it still appears inside
+the project, but the files live off Drive so Drive leaves them alone.
+
+Run in Git Bash from the project root:
+
+```bash
+# 1. Pause Google Drive first (tray icon -> gear -> Pause syncing),
+#    so the half-written node_modules can be deleted.
+
+# 2. Remove the corrupt partial install
+rm -rf node_modules
+
+# 3. Redirect node_modules to a real local folder, off Drive
+mkdir -p /c/dev/catalyst-node_modules
+cmd //c "mklink /J node_modules C:\\dev\\catalyst-node_modules"
+
+# 4. Install — writes now go to C:\dev, not Drive
+npm install
+
+# 5. Resume Google Drive syncing.
+```
+
+Notes:
+- `mklink /J` creates a junction; Drive does not follow it, so the deps never
+  sync to the cloud (which you want — they're 200MB+ of disposable files).
+- `.gitignore` already ignores `node_modules`, so git is unaffected.
+- If `rm -rf node_modules` itself errors, Drive is still holding file locks:
+  make sure sync is paused, and if needed delete the folder from File Explorer
+  or reboot to clear the locks, then run steps 3-4.
