@@ -39,3 +39,4 @@ the seam.
 
 Vite + React 19 + TypeScript + Tailwind CSS v4 (via `@tailwindcss/vite`) + Recharts.
 # project-catalyst
+# project-catalyst
