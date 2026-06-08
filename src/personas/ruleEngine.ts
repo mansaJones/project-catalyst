@@ -74,7 +74,7 @@ export class RuleEngine implements PersonaEvaluator {
   readonly name = 'rule-engine-v1'
 
   // brief is accepted for interface parity; the rules ignore it for now.
-  evaluate(_brief: CreativeBrief, hooks: CreativeHook[]): HookEvaluation[] {
+  async evaluate(_brief: CreativeBrief, hooks: CreativeHook[]): Promise<HookEvaluation[]> {
     const personas = Object.keys(RULES) as PersonaId[]
     return hooks.map((hook) => {
       const scores = personas.map((p) => scoreHook(p, hook.text))

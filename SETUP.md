@@ -76,3 +76,20 @@ level or set the service root dir to `catalyst`.
 | `src/personas/index.ts` | Active backend — swap one line to use an LLM. |
 | `src/budget/simulate.ts` | Scripted 7-day budget model. |
 | `src/components/` | The three UI modules. |
+
+## Running with the Claude backend (optional)
+
+By default the app uses the deterministic rule engine and needs no server.
+To score hooks with Claude instead:
+
+```bash
+cp .env.example .env          # then paste your Anthropic key into .env
+npm install                   # picks up express, cors, @anthropic-ai/sdk, concurrently
+echo "VITE_USE_LLM=true" >> .env.local   # tell the frontend to use the LLM backend
+npm run dev:all               # runs Vite + the API server together
+```
+
+- The key lives only in `server/index.mjs`'s process (`.env`), never in the browser.
+- `.env` is gitignored. Do not commit it.
+- Default model is `claude-haiku-4-5-20251001`; override with `ANTHROPIC_MODEL` in `.env`.
+- The rule engine remains the fallback, so the keyless static deploy still works.

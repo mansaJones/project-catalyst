@@ -13,14 +13,24 @@ export default function App() {
   const [hooks, setHooks] = useState<CreativeHook[]>([makeHook(1), makeHook(2), makeHook(3)])
   const [evaluations, setEvaluations] = useState<HookEvaluation[]>([])
   const [budget, setBudget] = useState<DayPoint[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleHookChange = (id: string, text: string) =>
     setHooks((prev) => prev.map((h) => (h.id === id ? { ...h, text } : h)))
 
-  const handleEvaluate = () => {
-    const result = evaluator.evaluate(brief, hooks)
-    setEvaluations(result)
-    setBudget(simulateBudget(result))
+  const handleEvaluate = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await evaluator.evaluate(brief, hooks)
+      setEvaluations(result)
+      setBudget(simulateBudget(result))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Evaluation failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -36,16 +46,24 @@ export default function App() {
         <CreativeInputBoard
           brief={brief}
           hooks={hooks}
+          loading={loading}
           onBriefChange={setBrief}
           onHookChange={handleHookChange}
           onEvaluate={handleEvaluate}
         />
+
+        {error && (
+          <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            {error}
+          </div>
+        )}
+
         <PersonaPanel hooks={hooks} evaluations={evaluations} />
         <BudgetAllocator data={budget} />
       </div>
 
       <footer className="mt-8 text-center text-xs text-slate-600">
-        Persona scores and budget curves are deterministic simulations, not live data.
+        Persona scores and budget curves are deterministic simulations unless the Claude backend is enabled.
       </footer>
     </div>
   )

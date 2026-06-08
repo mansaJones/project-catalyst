@@ -3,12 +3,13 @@ import type { CreativeBrief, CreativeHook } from '../types'
 interface Props {
   brief: CreativeBrief
   hooks: CreativeHook[]
+  loading?: boolean
   onBriefChange: (brief: CreativeBrief) => void
   onHookChange: (id: string, text: string) => void
   onEvaluate: () => void
 }
 
-export function CreativeInputBoard({ brief, hooks, onBriefChange, onHookChange, onEvaluate }: Props) {
+export function CreativeInputBoard({ brief, hooks, loading = false, onBriefChange, onHookChange, onEvaluate }: Props) {
   return (
     <section className="rounded-xl border border-[var(--color-edge)] bg-[var(--color-panel)] p-5">
       <h2 className="mb-1 text-lg font-semibold">1 · Creative Input Board</h2>
@@ -48,9 +49,10 @@ export function CreativeInputBoard({ brief, hooks, onBriefChange, onHookChange, 
 
       <button
         onClick={onEvaluate}
-        className="mt-4 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:brightness-110"
+        disabled={loading}
+        className="mt-4 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-ink)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Evaluate hooks
+        {loading ? 'Evaluating…' : 'Evaluate hooks'}
       </button>
     </section>
   )
