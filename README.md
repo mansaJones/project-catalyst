@@ -1,5 +1,7 @@
 # Project Catalyst
 
+> Pressure-test ad creative against synthetic buyer personas, then preview an automated 7-day budget reallocation — before spending a dollar.
+
 [![CI](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml/badge.svg)](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml)
 
 **Live demo → [project-catalyst-fhep.onrender.com](https://project-catalyst-fhep.onrender.com/)**
@@ -15,8 +17,7 @@ deliberate tradeoff to keep the hosted demo free and reproducible. The scoring
 backend is swappable, so the same UI can run on real Claude calls instead (see
 [Running with the Claude backend](#running-with-the-claude-backend)).
 
-<!-- Add a screenshot of the live app here once captured, e.g.:
-![Project Catalyst](docs/screenshot.png) -->
+![Project Catalyst — the rebranded app showing synthetic persona scores and the simulated 7-day budget allocator](docs/screenshot.png)
 
 ## Features
 
