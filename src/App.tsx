@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CreativeBrief, CreativeHook, HookResult, PersonaId } from './types'
 import { evaluator, PERSONA_ORDER } from './personas'
 import { SAMPLE_ADS, type SampleAd } from './samples'
@@ -9,7 +9,6 @@ import { AdStudio } from './components/AdStudio'
 const uid = () => Math.random().toString(36).slice(2, 9)
 const DEFAULT_ACTIVE: PersonaId[] = ['skeptic', 'impulse', 'critic']
 const makeHook = (): CreativeHook => ({ id: uid(), text: '' })
-const MAX_HOOKS = 6
 
 export default function App() {
   const [brief, setBrief] = useState<CreativeBrief>({ product: '', audience: '' })
@@ -27,7 +26,6 @@ export default function App() {
       return next.length === 0 ? prev : next
     })
 
-  const addHook = () => setHooks((prev) => (prev.length >= MAX_HOOKS ? prev : [...prev, makeHook()]))
   const removeHook = (hid: string) => {
     setHooks((prev) => (prev.length <= 1 ? prev : prev.filter((h) => h.id !== hid)))
     setAdHookId((cur) => (cur === hid ? null : cur))
@@ -60,6 +58,15 @@ export default function App() {
   const toggleAd = (hid: string) => setAdHookId((cur) => (cur === hid ? null : hid))
   const adHook = hooks.find((h) => h.id === adHookId) ?? null
 
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const studioRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (results.length) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [results])
+  useEffect(() => {
+    if (adHookId) studioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [adHookId])
+
   return (
     <div className="min-h-full">
       <header className="brand-hero px-4 py-12 text-center">
@@ -82,10 +89,8 @@ export default function App() {
             samples={SAMPLE_ADS}
             sampleImage={sampleImage}
             loading={loading}
-            canAddHook={hooks.length < MAX_HOOKS}
             onBriefChange={setBrief}
             onToggleActivePersona={toggleActivePersona}
-            onAddHook={addHook}
             onRemoveHook={removeHook}
             onHookTextChange={updateHookText}
             onLoadSample={loadSample}
@@ -105,21 +110,25 @@ export default function App() {
             </div>
           )}
 
-          <ResultsPanel
-            hooks={hooks}
-            results={results}
-            personaOrder={PERSONA_ORDER}
-            selectedAdHookId={adHookId}
-            onCreateAd={toggleAd}
-          />
+          <div ref={resultsRef}>
+            <ResultsPanel
+              hooks={hooks}
+              results={results}
+              personaOrder={PERSONA_ORDER}
+              selectedAdHookId={adHookId}
+              onCreateAd={toggleAd}
+            />
+          </div>
 
           {adHook && (
-            <AdStudio
-              hookText={adHook.text}
-              brief={brief}
-              image={sampleImage}
-              onClose={() => setAdHookId(null)}
-            />
+            <div ref={studioRef}>
+              <AdStudio
+                hookText={adHook.text}
+                brief={brief}
+                image={sampleImage}
+                onClose={() => setAdHookId(null)}
+              />
+            </div>
           )}
         </div>
 

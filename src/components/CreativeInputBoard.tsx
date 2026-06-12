@@ -10,10 +10,8 @@ interface Props {
   samples: SampleAd[]
   sampleImage: string | null
   loading: boolean
-  canAddHook: boolean
   onBriefChange: (brief: CreativeBrief) => void
   onToggleActivePersona: (id: PersonaId) => void
-  onAddHook: () => void
   onRemoveHook: (id: string) => void
   onHookTextChange: (id: string, text: string) => void
   onLoadSample: (ad: SampleAd) => void
@@ -22,8 +20,8 @@ interface Props {
 
 export function CreativeInputBoard(props: Props) {
   const {
-    brief, hooks, activePersonas, personaOrder, samples, sampleImage, loading, canAddHook,
-    onBriefChange, onToggleActivePersona, onAddHook, onRemoveHook,
+    brief, hooks, activePersonas, personaOrder, samples, sampleImage, loading,
+    onBriefChange, onToggleActivePersona, onRemoveHook,
     onHookTextChange, onLoadSample, onEvaluate,
   } = props
 
@@ -135,19 +133,6 @@ export function CreativeInputBoard(props: Props) {
             )}
           </div>
         ))}
-        {canAddHook && (
-          <button
-            type="button"
-            onClick={onAddHook}
-            className="text-xs"
-            style={{
-              fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '1px',
-              color: 'var(--color-orange-btn)', border: '1px solid var(--color-light)', padding: '8px 14px',
-            }}
-          >
-            + Add hook
-          </button>
-        )}
       </div>
 
       <button onClick={onEvaluate} disabled={loading} className="btn-brand mt-6">
