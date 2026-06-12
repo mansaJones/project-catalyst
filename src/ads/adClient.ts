@@ -1,5 +1,6 @@
 import type { CreativeBrief } from '../types'
 import type { AdFormatId } from '../adFormats'
+import { API_BASE } from '../apiBase'
 
 /** Claude-backed ad features only work when the local backend is enabled. */
 export const LLM_ENABLED = import.meta.env.VITE_USE_LLM === 'true'
@@ -12,7 +13,7 @@ export interface CopyFields {
 }
 
 export async function expandCopy(hook: string, brief: CreativeBrief, format: AdFormatId): Promise<CopyFields> {
-  const res = await fetch('/api/ad-copy', {
+  const res = await fetch(`${API_BASE}/api/ad-copy`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ hook, brief, format }),
@@ -24,7 +25,7 @@ export async function expandCopy(hook: string, brief: CreativeBrief, format: AdF
 }
 
 export async function designAd(hook: string, brief: CreativeBrief, format: AdFormatId): Promise<string> {
-  const res = await fetch('/api/ad-design', {
+  const res = await fetch(`${API_BASE}/api/ad-design`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ hook, brief, format }),

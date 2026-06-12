@@ -1,5 +1,6 @@
 import type { CreativeBrief, CreativeHook, HookResult, PersonaId } from '../types'
 import type { PersonaEvaluator } from './PersonaEvaluator'
+import { API_BASE } from '../apiBase'
 
 /**
  * Network-backed evaluator. Posts the brief, hooks and active persona set to our
@@ -10,7 +11,7 @@ export class LlmEvaluator implements PersonaEvaluator {
   readonly name = 'claude-evaluator'
   private readonly endpoint: string
 
-  constructor(endpoint = '/api/evaluate') {
+  constructor(endpoint = `${API_BASE}/api/evaluate`) {
     this.endpoint = endpoint
   }
 

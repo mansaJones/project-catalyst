@@ -36,9 +36,33 @@ const FORMAT_SPEC = {
   banner: { label: 'large-rectangle display banner', limits: 'headline <= 24 chars, very punchy', dims: '336x280' },
 }
 
+// ---- simple per-IP rate limit (protects the paid API on public hosting) ----
+const RL_WINDOW_MS = 60_000
+const RL_MAX = Number(process.env.RATE_LIMIT_PER_MIN || 20)
+const rlHits = new Map()
+function rateLimit(req, res, next) {
+  if (req.method === 'GET') return next()
+  const now = Date.now()
+  const ip = req.ip || 'unknown'
+  const rec = rlHits.get(ip)
+  if (!rec || now > rec.reset) {
+    rlHits.set(ip, { count: 1, reset: now + RL_WINDOW_MS })
+    return next()
+  }
+  if (rec.count >= RL_MAX) {
+    res.set('Retry-After', String(Math.ceil((rec.reset - now) / 1000)))
+    return res.status(429).json({ error: 'Rate limit exceeded. Try again shortly.' })
+  }
+  rec.count += 1
+  next()
+}
+
 const app = express()
-app.use(cors())
-app.use(express.json())
+app.set('trust proxy', 1)
+const ORIGINS = (process.env.ALLOWED_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean)
+app.use(cors({ origin: ORIGINS.length ? ORIGINS : true }))
+app.use(express.json({ limit: '64kb' }))
+app.use('/api', rateLimit)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, model: MODEL }))
 

@@ -1,15 +1,20 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Deploys Project Catalyst as a static site (Vite build -> dist).
+# Two services: a static React site + a Node API that holds the Anthropic key.
 services:
+  # ---- Frontend: static React site ----
   - type: web
     name: project-catalyst
     runtime: static
-    # npm ci is reproducible from the lockfile; --include=dev ensures
-    # tsc + vite (devDependencies) are present for the build step.
     buildCommand: npm ci --include=dev && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: true
-    # SPA fallback — harmless now, ready if you add client-side routing later.
+    envVars:
+      - key: VITE_USE_LLM
+        value: "true"
+      # After the API service deploys, set this (Render prompts you) to its PUBLIC
+      # url, e.g. https://project-catalyst-api.onrender.com — then redeploy this site.
+      - key: VITE_API_BASE
+        sync: false
     routes:
       - type: rewrite
         source: /*
@@ -18,3 +23,20 @@ services:
       - path: /*
         name: X-Frame-Options
         value: SAMEORIGIN
+
+  # ---- Backend: Node web service that holds the Anthropic key ----
+  - type: web
+    name: project-catalyst-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: node server/index.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Comma-separate if you serve the frontend from more than one origin.
+      - key: ALLOWED_ORIGIN
+        value: https://project-catalyst.mansa-tech.com
+      - key: RATE_LIMIT_PER_MIN
+        value: "20"

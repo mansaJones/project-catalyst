@@ -127,3 +127,36 @@ Notes:
 - If `rm -rf node_modules` itself errors, Drive is still holding file locks:
   make sure sync is paused, and if needed delete the folder from File Explorer
   or reboot to clear the locks, then run steps 3-4.
+
+## Hosting Claude on the live site (Tier 2)
+
+By default the live site runs the deterministic rule engine. To make the deployed
+site use Claude you host the backend and point the frontend at it. `render.yaml`
+already defines both services.
+
+1. Push these changes, then in Render: **New → Blueprint → pick the repo → Apply.**
+   It creates two services: `project-catalyst` (static site) and
+   `project-catalyst-api` (Node API).
+2. Set the prompted secrets/values:
+   - On **project-catalyst-api**: `ANTHROPIC_API_KEY` = your key.
+     (`ALLOWED_ORIGIN` and `RATE_LIMIT_PER_MIN` come preset from the blueprint.)
+   - On the **static site**: leave `VITE_API_BASE` blank for the first deploy.
+     Once the API service finishes, copy its public URL
+     (e.g. `https://project-catalyst-api.onrender.com`), set `VITE_API_BASE` to it,
+     and trigger a redeploy of the static site.
+3. Verify: the static site header should now read `backend: claude-evaluator`,
+   and the Ad Studio's "Claude copy" / "AI design" tabs are enabled.
+
+### Cost & safety guardrails (live)
+
+- **Rate limit:** the API caps requests per IP per minute (`RATE_LIMIT_PER_MIN`,
+  default 20) and returns 429 past that — protects the paid API from public abuse.
+- **CORS:** locked to `ALLOWED_ORIGIN` (your frontend domain); add comma-separated
+  origins if you serve from more than one.
+- **Cheap model + small calls:** uses Haiku; each eval / ad-copy / ad-design call is
+  a fraction of a cent. Still, set a **usage limit / billing alert at
+  platform.claude.com** before exposing it publicly.
+- **Free Render plan:** the API spins down when idle, so the first Claude request
+  after a quiet period has a ~30–60s cold start. Upgrade the API service's plan to
+  avoid this.
+- The static site never reads `.env`; all production config is Render env vars.
