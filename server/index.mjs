@@ -1,5 +1,7 @@
-// Local API server that holds the Anthropic key and scores every hook through
-// each active persona with Claude.
+// Local API server holding the Anthropic key. Three endpoints:
+//   POST /api/evaluate   - score hooks through active personas
+//   POST /api/ad-copy    - rewrite a hook into format-fit ad copy
+//   POST /api/ad-design  - generate a self-contained HTML ad layout
 // Run with: node --env-file=.env server/index.mjs   (Node 22+ for --env-file)
 
 import express from 'express'
@@ -17,8 +19,6 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-// Persona definitions mirror src/personas/ruleEngine.ts (kept in sync by hand;
-// the server is plain .mjs and can't import the TS catalog).
 const PERSONAS = {
   skeptic: 'The Skeptic (CFO lens): rewards cost, ROI and quantifiable proof; penalizes vague hype.',
   impulse: 'The Impulse Buyer (executive lens): rewards speed-to-value, bold hooks, emotional pull.',
@@ -30,9 +30,22 @@ const PERSONAS = {
 }
 const PERSONA_IDS = Object.keys(PERSONAS)
 
+const FORMAT_SPEC = {
+  google: { label: 'Google Search text ad', limits: 'headline <= 30 chars, description <= 90 chars', dims: '600x200' },
+  meta: { label: 'Instagram / Meta feed post', limits: 'primaryText 1-2 punchy sentences, headline <= 40 chars', dims: '480x600' },
+  banner: { label: 'large-rectangle display banner', limits: 'headline <= 24 chars, very punchy', dims: '336x280' },
+}
+
+const app = express()
+app.use(cors())
+app.use(express.json())
+
+app.get('/api/health', (_req, res) => res.json({ ok: true, model: MODEL }))
+
+// ---- persona evaluation ----
 const SCORE_TOOL = {
   name: 'submit_scores',
-  description: 'Return one score per hook per persona, scoring each hook through every requested persona.',
+  description: 'Return one score per hook per persona.',
   input_schema: {
     type: 'object',
     properties: {
@@ -54,27 +67,16 @@ const SCORE_TOOL = {
   },
 }
 
-const app = express()
-app.use(cors())
-app.use(express.json())
-
-app.get('/api/health', (_req, res) => res.json({ ok: true, model: MODEL }))
-
 app.post('/api/evaluate', async (req, res) => {
   const { brief, hooks, personas } = req.body ?? {}
-  if (!Array.isArray(hooks) || hooks.length === 0) {
-    return res.status(400).json({ error: 'Body must include a non-empty "hooks" array.' })
-  }
+  if (!Array.isArray(hooks) || hooks.length === 0) return res.status(400).json({ error: 'Need a non-empty "hooks" array.' })
   const active = (Array.isArray(personas) ? personas : []).filter((p) => PERSONAS[p])
-  if (active.length === 0) {
-    return res.status(400).json({ error: 'Body must include a non-empty "personas" array.' })
-  }
+  if (active.length === 0) return res.status(400).json({ error: 'Need a non-empty "personas" array.' })
 
-  const system = `You score ad-copy hooks. Score EVERY hook through EACH of the requested personas — one score (0-100) and a one-sentence rationale per hook per persona, grounded in the hook text.
+  const system = `You score ad-copy hooks. Score EVERY hook through EACH requested persona — one score (0-100) and a one-sentence rationale per hook per persona, grounded in the text.
 
 Persona lenses:
 ${active.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
-
   const userContent = [
     `Product: ${brief?.product || '(unspecified)'}`,
     `Audience: ${brief?.audience || '(unspecified)'}`,
@@ -87,20 +89,101 @@ ${active.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
 
   try {
     const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      system,
-      tools: [SCORE_TOOL],
-      tool_choice: { type: 'tool', name: 'submit_scores' },
+      model: MODEL, max_tokens: 2048, system,
+      tools: [SCORE_TOOL], tool_choice: { type: 'tool', name: 'submit_scores' },
       messages: [{ role: 'user', content: userContent }],
     })
-
     const toolUse = message.content.find((b) => b.type === 'tool_use')
     if (!toolUse) return res.status(502).json({ error: 'Model returned no structured scores.' })
-
     res.json({ results: normalizeResults(toolUse.input.results) })
   } catch (err) {
-    console.error('Anthropic call failed:', err?.message || err)
+    console.error('evaluate failed:', err?.message || err)
+    res.status(502).json({ error: 'Upstream model call failed.', detail: err?.message })
+  }
+})
+
+// ---- Claude ad copy ----
+const COPY_TOOL = {
+  name: 'submit_copy',
+  description: 'Return format-fit ad copy.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      headline: { type: 'string' },
+      description: { type: 'string' },
+      primaryText: { type: 'string' },
+      cta: { type: 'string' },
+    },
+    required: ['headline', 'description', 'primaryText', 'cta'],
+  },
+}
+
+app.post('/api/ad-copy', async (req, res) => {
+  const { hook, brief, format } = req.body ?? {}
+  const spec = FORMAT_SPEC[format]
+  if (!spec) return res.status(400).json({ error: 'Unknown format.' })
+  if (!hook) return res.status(400).json({ error: 'Need a "hook".' })
+
+  const system = `You are a senior performance-marketing copywriter. Rewrite the hook into compelling, on-brand ad copy for a ${spec.label}. Constraints: ${spec.limits}. The CTA is 1-3 words (e.g. "Get started", "Shop now"). Stay truthful to the product; do not invent claims. Keep it tight.`
+  const user = [
+    `Product: ${brief?.product || '(unspecified)'}`,
+    `Audience: ${brief?.audience || '(unspecified)'}`,
+    `Hook: ${hook}`,
+  ].join('\n')
+
+  try {
+    const message = await client.messages.create({
+      model: MODEL, max_tokens: 512, system,
+      tools: [COPY_TOOL], tool_choice: { type: 'tool', name: 'submit_copy' },
+      messages: [{ role: 'user', content: user }],
+    })
+    const t = message.content.find((b) => b.type === 'tool_use')
+    if (!t) return res.status(502).json({ error: 'No copy returned.' })
+    const c = t.input
+    res.json({ copy: { headline: String(c.headline ?? ''), description: String(c.description ?? ''), primaryText: String(c.primaryText ?? ''), cta: String(c.cta ?? '') } })
+  } catch (err) {
+    console.error('ad-copy failed:', err?.message || err)
+    res.status(502).json({ error: 'Upstream model call failed.', detail: err?.message })
+  }
+})
+
+// ---- Claude ad design (self-contained HTML, rendered sandboxed on the client) ----
+const DESIGN_TOOL = {
+  name: 'submit_design',
+  description: 'Return a single self-contained HTML fragment for the ad.',
+  input_schema: { type: 'object', properties: { html: { type: 'string' } }, required: ['html'] },
+}
+
+app.post('/api/ad-design', async (req, res) => {
+  const { hook, brief, format } = req.body ?? {}
+  const spec = FORMAT_SPEC[format]
+  if (!spec) return res.status(400).json({ error: 'Unknown format.' })
+  if (!hook) return res.status(400).json({ error: 'Need a "hook".' })
+
+  const system = `You design ad creative as code. Return ONE self-contained HTML fragment for a ${spec.label} that fills exactly ${spec.dims} pixels.
+Hard rules:
+- Inline styles only. NO <script>, NO external URLs, NO <img> with remote src, NO web fonts — system fonts only.
+- The root element must be exactly ${spec.dims}px (width x height), no margins, overflow hidden.
+- Use the Mansa Tech brand: burnt-orange (#CF4500 / #C03C00) accents on near-black (#111) and white, sharp corners (no border-radius), bold condensed headlines.
+- Build the creative around the hook; include a clear CTA button. Be visually striking but legible.
+Return only the HTML fragment, nothing else.`
+  const user = [
+    `Product: ${brief?.product || '(unspecified)'}`,
+    `Audience: ${brief?.audience || '(unspecified)'}`,
+    `Hook: ${hook}`,
+  ].join('\n')
+
+  try {
+    const message = await client.messages.create({
+      model: MODEL, max_tokens: 2048, system,
+      tools: [DESIGN_TOOL], tool_choice: { type: 'tool', name: 'submit_design' },
+      messages: [{ role: 'user', content: user }],
+    })
+    const t = message.content.find((b) => b.type === 'tool_use')
+    if (!t?.input?.html) return res.status(502).json({ error: 'No design returned.' })
+    res.json({ html: String(t.input.html) })
+  } catch (err) {
+    console.error('ad-design failed:', err?.message || err)
     res.status(502).json({ error: 'Upstream model call failed.', detail: err?.message })
   }
 })

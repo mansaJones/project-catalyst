@@ -11,7 +11,7 @@ export interface AdFormat {
 export const AD_FORMATS: AdFormat[] = [
   { id: 'google', label: 'Google Search', note: 'Responsive text ad' },
   { id: 'meta', label: 'Instagram / Meta', note: 'Feed post' },
-  { id: 'banner', label: 'Display 300×250', note: 'Medium rectangle' },
+  { id: 'banner', label: 'Display banner', note: 'Large rectangle 336×280' },
 ]
 
 export interface AdCopy {
@@ -66,4 +66,10 @@ export const buildAdCopy = (hook: string, brief: CreativeBrief): AdCopy => {
     description: brief.audience ? `Built for ${clampWords(brief.audience, 70)}.` : clampWords(text, 90),
     cta: deriveCta(text),
   }
+}
+
+export const AD_DIMENSIONS: Record<AdFormatId, { w: number; h: number }> = {
+  google: { w: 600, h: 200 },
+  meta: { w: 480, h: 600 },
+  banner: { w: 336, h: 280 },
 }
