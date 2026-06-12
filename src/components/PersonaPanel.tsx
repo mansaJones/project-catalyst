@@ -5,11 +5,13 @@ interface Props {
   hooks: CreativeHook[]
   results: HookResult[]
   personaOrder: PersonaId[]
+  selectedAdHookId: string | null
+  onCreateAd: (hookId: string) => void
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 
-export function ResultsPanel({ hooks, results, personaOrder }: Props) {
+export function ResultsPanel({ hooks, results, personaOrder, selectedAdHookId, onCreateAd }: Props) {
   if (!results.length) {
     return (
       <section className="panel p-6 sm:p-8">
@@ -22,7 +24,6 @@ export function ResultsPanel({ hooks, results, personaOrder }: Props) {
     )
   }
 
-  // group results by hook, ordered by persona
   const byHook = new Map<string, HookResult[]>()
   for (const r of results) {
     const list = byHook.get(r.hookId) ?? []
@@ -37,7 +38,7 @@ export function ResultsPanel({ hooks, results, personaOrder }: Props) {
       <p className="kicker">02 · Evaluation</p>
       <h2 className="panel-title mt-1">Persona Evaluation</h2>
       <p className="mt-2 mb-4 text-sm text-[var(--color-text)]">
-        Each hook scored through every active persona.
+        Each hook scored through every active persona. Pick a winner and build an ad from it.
       </p>
 
       <div className="space-y-4">
@@ -46,14 +47,34 @@ export function ResultsPanel({ hooks, results, personaOrder }: Props) {
           if (!list || !list.length) return null
           const scores = ordered(list)
           const overall = clamp(scores.reduce((a, s) => a + s.score, 0) / scores.length)
+          const selected = selectedAdHookId === hook.id
           return (
-            <div key={hook.id} className="border border-[var(--color-light)] p-3">
+            <div
+              key={hook.id}
+              className="p-3"
+              style={{ border: '1px solid ' + (selected ? 'var(--color-orange-btn)' : 'var(--color-light)') }}
+            >
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-sm text-[var(--color-text)]">
                   <span className="text-[var(--color-muted)]">Hook {i + 1}:</span>{' '}
                   {hook.text || <em className="text-[var(--color-muted)]">empty</em>}
                 </span>
-                <ScorePill value={overall} label="avg" />
+                <div className="flex shrink-0 items-center gap-2">
+                  <ScorePill value={overall} label="avg" />
+                  <button
+                    type="button"
+                    onClick={() => onCreateAd(hook.id)}
+                    className="px-2 py-0.5 text-xs"
+                    style={{
+                      fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '1px',
+                      border: '1px solid var(--color-orange-btn)',
+                      background: selected ? 'var(--color-orange-btn)' : 'var(--color-white)',
+                      color: selected ? 'var(--color-white)' : 'var(--color-orange-btn)',
+                    }}
+                  >
+                    Create ad
+                  </button>
+                </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {scores.map((s) => (
