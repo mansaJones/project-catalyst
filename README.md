@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml/badge.svg)](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml)
 
-**Live demo → [project-catalyst-fhep.onrender.com](https://project-catalyst-fhep.onrender.com/)**
+**Live demo → [project-catalyst.mansa-tech.com/](https://project-catalyst.mansa-tech.com//)**
 
 A self-contained React sandbox for paid-media creative testing: describe an
 offer, write competing ad hooks, assign each hook one of seven synthetic buyer
