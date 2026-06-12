@@ -1,5 +1,5 @@
-// Local API server that holds the Anthropic key and scores each hook through
-// its assigned persona with Claude.
+// Local API server that holds the Anthropic key and scores every hook through
+// each active persona with Claude.
 // Run with: node --env-file=.env server/index.mjs   (Node 22+ for --env-file)
 
 import express from 'express'
@@ -30,14 +30,9 @@ const PERSONAS = {
 }
 const PERSONA_IDS = Object.keys(PERSONAS)
 
-const SYSTEM = `You score ad-copy hooks. Each hook is assigned exactly ONE buyer persona; score that hook ONLY through its assigned persona's lens, 0-100, with a one-sentence rationale grounded in the hook text.
-
-Persona lenses:
-${PERSONA_IDS.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
-
 const SCORE_TOOL = {
   name: 'submit_scores',
-  description: 'Return one score per hook, scored through its assigned persona.',
+  description: 'Return one score per hook per persona, scoring each hook through every requested persona.',
   input_schema: {
     type: 'object',
     properties: {
@@ -66,24 +61,35 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => res.json({ ok: true, model: MODEL }))
 
 app.post('/api/evaluate', async (req, res) => {
-  const { brief, hooks } = req.body ?? {}
+  const { brief, hooks, personas } = req.body ?? {}
   if (!Array.isArray(hooks) || hooks.length === 0) {
     return res.status(400).json({ error: 'Body must include a non-empty "hooks" array.' })
   }
+  const active = (Array.isArray(personas) ? personas : []).filter((p) => PERSONAS[p])
+  if (active.length === 0) {
+    return res.status(400).json({ error: 'Body must include a non-empty "personas" array.' })
+  }
+
+  const system = `You score ad-copy hooks. Score EVERY hook through EACH of the requested personas — one score (0-100) and a one-sentence rationale per hook per persona, grounded in the hook text.
+
+Persona lenses:
+${active.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
 
   const userContent = [
     `Product: ${brief?.product || '(unspecified)'}`,
     `Audience: ${brief?.audience || '(unspecified)'}`,
     '',
-    'Score each hook through its assigned persona (use the exact id):',
-    ...hooks.map((h) => `- ${h.id} [persona: ${h.personaId}]: ${h.text || '(empty)'}`),
+    `Personas to apply to every hook: ${active.join(', ')}`,
+    '',
+    'Hooks (use the exact id); return a result for every hook × persona pair:',
+    ...hooks.map((h) => `- ${h.id}: ${h.text || '(empty)'}`),
   ].join('\n')
 
   try {
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 1024,
-      system: SYSTEM,
+      max_tokens: 2048,
+      system,
       tools: [SCORE_TOOL],
       tool_choice: { type: 'tool', name: 'submit_scores' },
       messages: [{ role: 'user', content: userContent }],

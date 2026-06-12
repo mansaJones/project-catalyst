@@ -16,7 +16,6 @@ interface Props {
   onAddHook: () => void
   onRemoveHook: (id: string) => void
   onHookTextChange: (id: string, text: string) => void
-  onHookPersonaChange: (id: string, personaId: PersonaId) => void
   onLoadSample: (ad: SampleAd) => void
   onEvaluate: () => void
 }
@@ -25,7 +24,7 @@ export function CreativeInputBoard(props: Props) {
   const {
     brief, hooks, activePersonas, personaOrder, samples, sampleImage, loading, canAddHook,
     onBriefChange, onToggleActivePersona, onAddHook, onRemoveHook,
-    onHookTextChange, onHookPersonaChange, onLoadSample, onEvaluate,
+    onHookTextChange, onLoadSample, onEvaluate,
   } = props
 
   return (
@@ -64,7 +63,8 @@ export function CreativeInputBoard(props: Props) {
       )}
 
       <p className="mt-4 text-sm text-[var(--color-text)]">
-        Describe the offer, pick which personas are in play, then assign one to each hook.
+        Describe the offer, pick which personas are in play, then write the hooks. Every hook is
+        scored against all active personas.
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -87,7 +87,7 @@ export function CreativeInputBoard(props: Props) {
       </div>
 
       <div className="mt-5">
-        <span className="field-label mb-2 block">Active personas</span>
+        <span className="field-label mb-2 block">Active personas (applied to every hook)</span>
         <div className="flex flex-wrap gap-2">
           {personaOrder.map((id) => {
             const on = activePersonas.includes(id)
@@ -98,9 +98,7 @@ export function CreativeInputBoard(props: Props) {
                 onClick={() => onToggleActivePersona(id)}
                 className="px-3 py-1 text-xs"
                 style={{
-                  fontFamily: 'var(--font-display)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
+                  fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '1px',
                   border: '1px solid ' + (on ? 'var(--color-orange-btn)' : 'var(--color-light)'),
                   background: on ? 'var(--color-orange-btn)' : 'var(--color-white)',
                   color: on ? 'var(--color-white)' : 'var(--color-muted)',
@@ -117,39 +115,24 @@ export function CreativeInputBoard(props: Props) {
       <div className="mt-5 space-y-3">
         <span className="field-label block">Hooks</span>
         {hooks.map((h, i) => (
-          <div key={h.id} className="border border-[var(--color-light)] p-3">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="field-label">Hook {i + 1}</span>
-              <div className="flex items-center gap-2">
-                <select
-                  className="field"
-                  style={{ width: 'auto', padding: '6px 8px' }}
-                  value={h.personaId}
-                  onChange={(e) => onHookPersonaChange(h.id, e.target.value as PersonaId)}
-                >
-                  {activePersonas.map((pid) => (
-                    <option key={pid} value={pid}>{PERSONA_LABELS[pid].name}</option>
-                  ))}
-                </select>
-                {hooks.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveHook(h.id)}
-                    aria-label={`Remove hook ${i + 1}`}
-                    className="px-2 py-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-orange-deep)]"
-                    style={{ border: '1px solid var(--color-light)' }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
+          <div key={h.id} className="flex items-start gap-2">
             <textarea
               className="field min-h-[56px] resize-y"
               value={h.text}
-              placeholder="One ad angle…"
+              placeholder={`Ad angle ${i + 1}…`}
               onChange={(e) => onHookTextChange(h.id, e.target.value)}
             />
+            {hooks.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemoveHook(h.id)}
+                aria-label={`Remove hook ${i + 1}`}
+                className="mt-1 px-2 py-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-orange-deep)]"
+                style={{ border: '1px solid var(--color-light)' }}
+              >
+                ✕
+              </button>
+            )}
           </div>
         ))}
         {canAddHook && (

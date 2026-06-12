@@ -14,14 +14,13 @@ export interface CreativeBrief {
   audience: string
 }
 
-/** One ad hook, with the single persona assigned to evaluate it. */
+/** One ad hook. Every active persona scores it. */
 export interface CreativeHook {
   id: string
   text: string
-  personaId: PersonaId
 }
 
-/** Result of scoring one hook through its assigned persona. */
+/** Score of one hook through one persona. */
 export interface HookResult {
   hookId: string
   personaId: PersonaId

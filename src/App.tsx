@@ -7,43 +7,34 @@ import { ResultsPanel } from './components/PersonaPanel'
 
 const uid = () => Math.random().toString(36).slice(2, 9)
 const DEFAULT_ACTIVE: PersonaId[] = ['skeptic', 'impulse', 'critic']
-
-const makeHook = (personaId: PersonaId): CreativeHook => ({ id: uid(), text: '', personaId })
-
+const makeHook = (): CreativeHook => ({ id: uid(), text: '' })
 const MAX_HOOKS = 6
 
 export default function App() {
   const [brief, setBrief] = useState<CreativeBrief>({ product: '', audience: '' })
   const [activePersonas, setActivePersonas] = useState<PersonaId[]>(DEFAULT_ACTIVE)
-  const [hooks, setHooks] = useState<CreativeHook[]>(DEFAULT_ACTIVE.map(makeHook))
+  const [hooks, setHooks] = useState<CreativeHook[]>([makeHook(), makeHook(), makeHook()])
   const [results, setResults] = useState<HookResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sampleImage, setSampleImage] = useState<string | null>(null)
 
-  const toggleActivePersona = (id: PersonaId) => {
+  const toggleActivePersona = (id: PersonaId) =>
     setActivePersonas((prev) => {
       const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-      if (next.length === 0) return prev // keep at least one active
-      // reassign any hook pointing at a now-inactive persona to the first active one
-      setHooks((hs) => hs.map((h) => (next.includes(h.personaId) ? h : { ...h, personaId: next[0] })))
-      return next
+      return next.length === 0 ? prev : next // keep at least one active
     })
-  }
 
-  const addHook = () =>
-    setHooks((prev) => (prev.length >= MAX_HOOKS ? prev : [...prev, makeHook(activePersonas[0])]))
-  const removeHook = (id: string) =>
-    setHooks((prev) => (prev.length <= 1 ? prev : prev.filter((h) => h.id !== id)))
-  const updateHookText = (id: string, text: string) =>
-    setHooks((prev) => prev.map((h) => (h.id === id ? { ...h, text } : h)))
-  const updateHookPersona = (id: string, personaId: PersonaId) =>
-    setHooks((prev) => prev.map((h) => (h.id === id ? { ...h, personaId } : h)))
+  const addHook = () => setHooks((prev) => (prev.length >= MAX_HOOKS ? prev : [...prev, makeHook()]))
+  const removeHook = (hid: string) =>
+    setHooks((prev) => (prev.length <= 1 ? prev : prev.filter((h) => h.id !== hid)))
+  const updateHookText = (hid: string, text: string) =>
+    setHooks((prev) => prev.map((h) => (h.id === hid ? { ...h, text } : h)))
 
   const loadSample = (ad: SampleAd) => {
     setBrief(ad.brief)
     setActivePersonas(ad.activePersonas)
-    setHooks(ad.hooks.map((h) => ({ id: uid(), text: h.text, personaId: h.personaId })))
+    setHooks(ad.hooks.map((text) => ({ id: uid(), text })))
     setResults([])
     setError(null)
     setSampleImage(ad.image)
@@ -53,7 +44,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      setResults(await evaluator.evaluate(brief, hooks))
+      setResults(await evaluator.evaluate(brief, hooks, activePersonas))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Evaluation failed.')
     } finally {
@@ -69,7 +60,7 @@ export default function App() {
           Project <b>Catalyst</b>
         </h1>
         <p className="sub mt-4">
-          Score each hook through a chosen persona · backend: <code>{evaluator.name}</code>
+          Score every hook against your chosen personas · backend: <code>{evaluator.name}</code>
         </p>
       </header>
 
@@ -89,7 +80,6 @@ export default function App() {
             onAddHook={addHook}
             onRemoveHook={removeHook}
             onHookTextChange={updateHookText}
-            onHookPersonaChange={updateHookPersona}
             onLoadSample={loadSample}
             onEvaluate={handleEvaluate}
           />
@@ -107,17 +97,14 @@ export default function App() {
             </div>
           )}
 
-          <ResultsPanel hooks={hooks} results={results} />
+          <ResultsPanel hooks={hooks} results={results} personaOrder={PERSONA_ORDER} />
         </div>
 
         <footer
           className="mt-10 text-center"
           style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 11,
-            letterSpacing: 1.5,
-            textTransform: 'uppercase',
-            color: 'var(--color-muted)',
+            fontFamily: 'var(--font-display)', fontSize: 11, letterSpacing: 1.5,
+            textTransform: 'uppercase', color: 'var(--color-muted)',
           }}
         >
           Persona scores are deterministic simulations unless the Claude backend is enabled

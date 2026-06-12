@@ -1,10 +1,5 @@
 import type { CreativeBrief, PersonaId } from './types'
 
-export interface SampleHook {
-  text: string
-  personaId: PersonaId
-}
-
 export interface SampleAd {
   id: string
   label: string
@@ -13,8 +8,9 @@ export interface SampleAd {
   /** Ready-to-paste prompt for generating the ad image in any tool. */
   imagePrompt: string
   brief: CreativeBrief
+  /** Personas applied to every hook in this sample. */
   activePersonas: PersonaId[]
-  hooks: SampleHook[]
+  hooks: string[]
 }
 
 export const SAMPLE_ADS: SampleAd[] = [
@@ -30,9 +26,9 @@ export const SAMPLE_ADS: SampleAd[] = [
     },
     activePersonas: ['skeptic', 'critic', 'researcher'],
     hooks: [
-      { text: 'Close the books 60% faster and cut audit costs — proven across 400 finance teams.', personaId: 'skeptic' },
-      { text: 'Native NetSuite and QuickBooks sync, SOC 2 compliant, configurable approval workflows.', personaId: 'critic' },
-      { text: 'Independent benchmark: 99.7% reconciliation accuracy across 1.2M transactions.', personaId: 'researcher' },
+      'Close the books 60% faster and cut audit costs — proven across 400 finance teams.',
+      'Native NetSuite and QuickBooks sync, SOC 2 compliant, configurable approval workflows.',
+      'Independent benchmark: 99.7% reconciliation accuracy across 1.2M transactions.',
     ],
   },
   {
@@ -47,9 +43,9 @@ export const SAMPLE_ADS: SampleAd[] = [
     },
     activePersonas: ['impulse', 'bargain', 'loyalist'],
     hooks: [
-      { text: 'Fall asleep in minutes tonight. Free shipping, free returns!', personaId: 'impulse' },
-      { text: 'Summer sale: 30% off + a free bamboo pillowcase bundle.', personaId: 'bargain' },
-      { text: 'Rated 4.8 stars by 12,000+ sleepers — a Sleep Foundation pick.', personaId: 'loyalist' },
+      'Fall asleep in minutes tonight. Free shipping, free returns!',
+      'Summer sale: 30% off + a free bamboo pillowcase bundle.',
+      'Rated 4.8 stars by 12,000+ sleepers — a Sleep Foundation pick.',
     ],
   },
   {
@@ -64,9 +60,9 @@ export const SAMPLE_ADS: SampleAd[] = [
     },
     activePersonas: ['skeptic', 'impulse', 'trend'],
     hooks: [
-      { text: 'Approval in 24 hours, rates from 6%, no hidden fees.', personaId: 'skeptic' },
-      { text: 'Need cash now? Unlock up to $250K instantly. Apply free today!', personaId: 'impulse' },
-      { text: 'The funding option every Shopify founder is switching to in 2026.', personaId: 'trend' },
+      'Approval in 24 hours, rates from 6%, no hidden fees.',
+      'Need cash now? Unlock up to $250K instantly. Apply free today!',
+      'The funding option every Shopify founder is switching to in 2026.',
     ],
   },
 ]

@@ -1,10 +1,10 @@
-import type { CreativeBrief, CreativeHook, HookResult } from '../types'
+import type { CreativeBrief, CreativeHook, HookResult, PersonaId } from '../types'
 import type { PersonaEvaluator } from './PersonaEvaluator'
 
 /**
- * Network-backed evaluator. Posts the brief + hooks (each carrying its assigned
- * persona) to our own /api/evaluate endpoint, which holds the Anthropic key and
- * never exposes it to the browser. Returns one HookResult per hook.
+ * Network-backed evaluator. Posts the brief, hooks and active persona set to our
+ * own /api/evaluate endpoint, which holds the Anthropic key and never exposes it
+ * to the browser. Returns one HookResult per hook×persona.
  */
 export class LlmEvaluator implements PersonaEvaluator {
   readonly name = 'claude-evaluator'
@@ -14,11 +14,11 @@ export class LlmEvaluator implements PersonaEvaluator {
     this.endpoint = endpoint
   }
 
-  async evaluate(brief: CreativeBrief, hooks: CreativeHook[]): Promise<HookResult[]> {
+  async evaluate(brief: CreativeBrief, hooks: CreativeHook[], personas: PersonaId[]): Promise<HookResult[]> {
     const res = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brief, hooks }),
+      body: JSON.stringify({ brief, hooks, personas }),
     })
 
     if (!res.ok) {

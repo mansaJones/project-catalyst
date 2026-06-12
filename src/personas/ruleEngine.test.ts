@@ -4,9 +4,9 @@ import type { CreativeBrief, CreativeHook, PersonaId } from '../types'
 
 const brief: CreativeBrief = { product: 'AI scheduler', audience: 'ops leads' }
 const engine = new RuleEngine()
-const hook = (id: string, text: string, personaId: PersonaId): CreativeHook => ({ id, text, personaId })
-const scoreOf = async (text: string, personaId: PersonaId) =>
-  (await engine.evaluate(brief, [hook('h', text, personaId)]))[0].score
+const hook = (id: string, text: string): CreativeHook => ({ id, text })
+const scoreOf = async (text: string, persona: PersonaId) =>
+  (await engine.evaluate(brief, [hook('h', text)], [persona]))[0].score
 
 describe('RuleEngine', () => {
   it('exposes all 7 personas', () => {
@@ -16,22 +16,26 @@ describe('RuleEngine', () => {
     )
   })
 
-  it('returns one result per hook, preserving id, order and assigned persona', async () => {
-    const hooks = [hook('a', 'Save 30% on costs', 'skeptic'), hook('b', 'Trending now!', 'trend')]
-    const res = await engine.evaluate(brief, hooks)
-    expect(res.map((r) => r.hookId)).toEqual(['a', 'b'])
-    expect(res.map((r) => r.personaId)).toEqual(['skeptic', 'trend'])
+  it('scores every hook through every active persona (hook × persona results)', async () => {
+    const hooks = [hook('a', 'Save 30% now'), hook('b', 'Trending today')]
+    const res = await engine.evaluate(brief, hooks, ['skeptic', 'impulse', 'trend'])
+    expect(res).toHaveLength(6) // 2 hooks × 3 personas
+    expect(res.filter((r) => r.hookId === 'a').map((r) => r.personaId).sort())
+      .toEqual(['impulse', 'skeptic', 'trend'])
   })
 
   it('is deterministic', async () => {
-    const hooks = [hook('a', 'Cut spend 40% with proven ROI', 'skeptic')]
-    expect(await engine.evaluate(brief, hooks)).toEqual(await engine.evaluate(brief, hooks))
+    const hooks = [hook('a', 'Cut spend 40% with proven ROI')]
+    const p: PersonaId[] = ['skeptic', 'researcher']
+    expect(await engine.evaluate(brief, hooks, p)).toEqual(await engine.evaluate(brief, hooks, p))
   })
 
-  it('keeps scores within 0..100', async () => {
-    const res = await engine.evaluate(brief, [hook('a', 'Save save save 50% off free deal bargain value', 'bargain')])
-    expect(res[0].score).toBeGreaterThanOrEqual(0)
-    expect(res[0].score).toBeLessThanOrEqual(100)
+  it('keeps every score within 0..100', async () => {
+    const res = await engine.evaluate(brief, [hook('a', 'Save 50% off free deal bargain value now!')], PERSONA_ORDER)
+    for (const r of res) {
+      expect(r.score).toBeGreaterThanOrEqual(0)
+      expect(r.score).toBeLessThanOrEqual(100)
+    }
   })
 
   it('skeptic rewards cost/ROI + numbers over vague hype', async () => {
@@ -48,17 +52,13 @@ describe('RuleEngine', () => {
     expect(await scoreOf('Rated 4.8 stars by 12,000+ customers', 'loyalist')).toBeGreaterThan(50)
   })
 
-  it('researcher rewards evidence and numbers', async () => {
-    expect(await scoreOf('Independent study: 99.7% accuracy across 1.2M tests', 'researcher')).toBeGreaterThan(50)
-  })
-
   it('trend rewards novelty/FOMO over legacy framing', async () => {
     expect(await scoreOf('The viral tool everyone is switching to!', 'trend'))
       .toBeGreaterThan(await scoreOf('A traditional, classic, legacy solution', 'trend'))
   })
 
-  it('skips hooks whose persona is unknown', async () => {
-    const res = await engine.evaluate(brief, [hook('a', 'x', 'nope' as PersonaId)])
+  it('ignores unknown personas', async () => {
+    const res = await engine.evaluate(brief, [hook('a', 'x')], ['nope' as PersonaId])
     expect(res).toHaveLength(0)
   })
 })
