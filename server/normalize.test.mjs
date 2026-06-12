@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { clamp, normalizeEvaluations } from './normalize.mjs'
+import { clamp, normalizeResults } from './normalize.mjs'
 
 describe('clamp', () => {
   it('bounds to 0..100 and rounds', () => {
@@ -8,34 +8,24 @@ describe('clamp', () => {
     expect(clamp(72.6)).toBe(73)
   })
   it('coerces junk to 0', () => {
-    expect(clamp('not a number')).toBe(0)
+    expect(clamp('nope')).toBe(0)
     expect(clamp(undefined)).toBe(0)
   })
 })
 
-describe('normalizeEvaluations', () => {
-  it('clamps scores and recomputes overall as the mean', () => {
-    const out = normalizeEvaluations([
-      { hookId: 'a', scores: [
-        { personaId: 'skeptic', score: 120, rationale: 'x' },
-        { personaId: 'impulse', score: 40, rationale: 'y' },
-        { personaId: 'critic', score: 50, rationale: 'z' },
-      ] },
+describe('normalizeResults', () => {
+  it('clamps score, coerces rationale, preserves hookId + personaId', () => {
+    const out = normalizeResults([
+      { hookId: 'a', personaId: 'skeptic', score: 120, rationale: 'x' },
+      { hookId: 'b', personaId: 'trend', score: 40 },
     ])
-    expect(out[0].scores[0].score).toBe(100)            // clamped
-    expect(out[0].overall).toBe(Math.round((100 + 40 + 50) / 3)) // 63
-  })
-
-  it('coerces missing rationale to a string and tolerates missing scores', () => {
-    const out = normalizeEvaluations([{ hookId: 'a', scores: [{ personaId: 'skeptic', score: 10 }] }])
-    expect(out[0].scores[0].rationale).toBe('')
-    const empty = normalizeEvaluations([{ hookId: 'b' }])
-    expect(empty[0].overall).toBe(0)
-    expect(empty[0].scores).toEqual([])
+    expect(out[0]).toEqual({ hookId: 'a', personaId: 'skeptic', score: 100, rationale: 'x' })
+    expect(out[1].rationale).toBe('')
+    expect(out[1].score).toBe(40)
   })
 
   it('returns [] for nullish input', () => {
-    expect(normalizeEvaluations(undefined)).toEqual([])
-    expect(normalizeEvaluations(null)).toEqual([])
+    expect(normalizeResults(undefined)).toEqual([])
+    expect(normalizeResults(null)).toEqual([])
   })
 })

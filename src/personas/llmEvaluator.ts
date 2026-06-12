@@ -1,10 +1,10 @@
-import type { CreativeBrief, CreativeHook, HookEvaluation } from '../types'
+import type { CreativeBrief, CreativeHook, HookResult } from '../types'
 import type { PersonaEvaluator } from './PersonaEvaluator'
 
 /**
- * Network-backed evaluator. Posts the brief + hooks to our own /api/evaluate
- * endpoint, which holds the Anthropic API key and never exposes it to the
- * browser. The server returns HookEvaluation[] already shaped to our types.
+ * Network-backed evaluator. Posts the brief + hooks (each carrying its assigned
+ * persona) to our own /api/evaluate endpoint, which holds the Anthropic key and
+ * never exposes it to the browser. Returns one HookResult per hook.
  */
 export class LlmEvaluator implements PersonaEvaluator {
   readonly name = 'claude-evaluator'
@@ -14,7 +14,7 @@ export class LlmEvaluator implements PersonaEvaluator {
     this.endpoint = endpoint
   }
 
-  async evaluate(brief: CreativeBrief, hooks: CreativeHook[]): Promise<HookEvaluation[]> {
+  async evaluate(brief: CreativeBrief, hooks: CreativeHook[]): Promise<HookResult[]> {
     const res = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,8 +26,8 @@ export class LlmEvaluator implements PersonaEvaluator {
       throw new Error(`Evaluation failed (${res.status}). ${detail}`.trim())
     }
 
-    const data = (await res.json()) as { evaluations: HookEvaluation[] }
-    if (!data?.evaluations) throw new Error('Malformed response from evaluation server.')
-    return data.evaluations
+    const data = (await res.json()) as { results: HookResult[] }
+    if (!data?.results) throw new Error('Malformed response from evaluation server.')
+    return data.results
   }
 }

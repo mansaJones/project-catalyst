@@ -1,40 +1,38 @@
-import type { CreativeHook, HookEvaluation, PersonaId } from '../types'
+import type { CreativeHook, HookResult } from '../types'
 import { PERSONA_LABELS } from '../personas'
 
 interface Props {
   hooks: CreativeHook[]
-  evaluations: HookEvaluation[]
+  results: HookResult[]
 }
 
-const PERSONA_ORDER: PersonaId[] = ['skeptic', 'impulse', 'critic']
-
-export function PersonaPanel({ hooks, evaluations }: Props) {
-  if (!evaluations.length) {
+export function ResultsPanel({ hooks, results }: Props) {
+  if (!results.length) {
     return (
       <section className="panel p-6 sm:p-8">
         <p className="kicker">02 · Evaluation</p>
-        <h2 className="panel-title mt-1">Synthetic Persona Evaluation</h2>
+        <h2 className="panel-title mt-1">Persona Evaluation</h2>
         <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Run an evaluation to see how each persona grades your hooks.
+          Assign a persona to each hook and run an evaluation to see the scores.
         </p>
       </section>
     )
   }
 
-  const byHook = new Map(evaluations.map((e) => [e.hookId, e]))
+  const byHook = new Map(results.map((r) => [r.hookId, r]))
 
   return (
     <section className="panel p-6 sm:p-8">
       <p className="kicker">02 · Evaluation</p>
-      <h2 className="panel-title mt-1">Synthetic Persona Evaluation</h2>
+      <h2 className="panel-title mt-1">Persona Evaluation</h2>
       <p className="mt-2 mb-4 text-sm text-[var(--color-text)]">
-        Rule-based scoring — deterministic, not a model.
+        Each hook scored through its assigned persona.
       </p>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {hooks.map((hook, i) => {
-          const evaln = byHook.get(hook.id)
-          if (!evaln) return null
+          const r = byHook.get(hook.id)
+          if (!r) return null
           return (
             <div key={hook.id} className="border border-[var(--color-light)] p-3">
               <div className="mb-2 flex items-center justify-between gap-3">
@@ -42,26 +40,16 @@ export function PersonaPanel({ hooks, evaluations }: Props) {
                   <span className="text-[var(--color-muted)]">Hook {i + 1}:</span>{' '}
                   {hook.text || <em className="text-[var(--color-muted)]">empty</em>}
                 </span>
-                <ScorePill value={evaln.overall} />
+                <ScorePill value={r.score} />
               </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {PERSONA_ORDER.map((pid) => {
-                  const s = evaln.scores.find((x) => x.personaId === pid)!
-                  return (
-                    <div key={pid} className="bg-[var(--color-light)] p-2">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className="text-xs font-semibold"
-                          style={{ fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-ink)' }}
-                        >
-                          {PERSONA_LABELS[pid].name}
-                        </span>
-                        <span className="text-xs tabular-nums text-[var(--color-text)]">{s.score}</span>
-                      </div>
-                      <p className="mt-1 text-[11px] leading-snug text-[var(--color-muted)]">{s.rationale}</p>
-                    </div>
-                  )
-                })}
+              <div className="flex items-start gap-2 bg-[var(--color-light)] p-2">
+                <span
+                  className="shrink-0 text-xs font-semibold"
+                  style={{ fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-ink)' }}
+                >
+                  {PERSONA_LABELS[r.personaId].name}
+                </span>
+                <p className="text-[12px] leading-snug text-[var(--color-text)]">{r.rationale}</p>
               </div>
             </div>
           )
@@ -72,11 +60,10 @@ export function PersonaPanel({ hooks, evaluations }: Props) {
 }
 
 function ScorePill({ value }: { value: number }) {
-  // Brand-aligned scale: orange = strong, bright orange = mid, muted = weak.
   const bg = value >= 66 ? 'var(--color-orange-btn)' : value >= 45 ? 'var(--color-orange-bright)' : 'var(--color-muted)'
   return (
     <span
-      className="px-2 py-0.5 text-xs font-semibold tabular-nums text-white"
+      className="shrink-0 px-2 py-0.5 text-xs font-semibold tabular-nums text-white"
       style={{ background: bg, fontFamily: 'var(--font-display)', letterSpacing: '0.5px' }}
     >
       {value}/100

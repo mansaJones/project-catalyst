@@ -1,14 +1,11 @@
-// Local API server that holds the Anthropic key and scores hooks with Claude.
+// Local API server that holds the Anthropic key and scores each hook through
+// its assigned persona with Claude.
 // Run with: node --env-file=.env server/index.mjs   (Node 22+ for --env-file)
-//
-// This is intentionally a separate process from the Vite static app: the key
-// lives here and is never shipped to the browser. In dev, Vite proxies
-// /api -> this server (see vite.config.ts).
 
 import express from 'express'
 import cors from 'cors'
 import Anthropic from '@anthropic-ai/sdk'
-import { normalizeEvaluations } from './normalize.mjs'
+import { normalizeResults } from './normalize.mjs'
 
 const PORT = process.env.PORT || 8787
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001'
@@ -20,44 +17,45 @@ if (!process.env.ANTHROPIC_API_KEY) {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const PERSONAS = `You are scoring ad copy hooks through three fixed buyer-persona lenses:
-- "skeptic"  — a CFO. Rewards cost/ROI framing and quantifiable proof; penalizes vague hype.
-- "impulse"  — a busy executive. Rewards speed-to-value, bold hooks, emotional pull.
-- "critic"   — a product lead. Rewards technical specifics, integrations, structural clarity.
-Score each hook 0-100 per persona, with a one-sentence rationale grounded in the text.`
+// Persona definitions mirror src/personas/ruleEngine.ts (kept in sync by hand;
+// the server is plain .mjs and can't import the TS catalog).
+const PERSONAS = {
+  skeptic: 'The Skeptic (CFO lens): rewards cost, ROI and quantifiable proof; penalizes vague hype.',
+  impulse: 'The Impulse Buyer (executive lens): rewards speed-to-value, bold hooks, emotional pull.',
+  critic: 'The Feature Critic (product lens): rewards technical specifics, integrations, structural clarity.',
+  bargain: 'The Bargain Hunter: rewards discounts, savings and obvious value; penalizes premium framing.',
+  loyalist: 'The Brand Loyalist: rewards reputation, reviews and social proof; penalizes unproven framing.',
+  researcher: 'The Researcher: rewards data, comparisons, detailed specs and cited evidence.',
+  trend: 'The Trend Seeker: rewards novelty, FOMO and momentum; penalizes legacy framing.',
+}
+const PERSONA_IDS = Object.keys(PERSONAS)
 
-// Tool schema forces structured output. (Newer alternative: the GA
-// output_config.format JSON-Schema field — swap in later if preferred.)
+const SYSTEM = `You score ad-copy hooks. Each hook is assigned exactly ONE buyer persona; score that hook ONLY through its assigned persona's lens, 0-100, with a one-sentence rationale grounded in the hook text.
+
+Persona lenses:
+${PERSONA_IDS.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
+
 const SCORE_TOOL = {
   name: 'submit_scores',
-  description: 'Return persona scores for every hook.',
+  description: 'Return one score per hook, scored through its assigned persona.',
   input_schema: {
     type: 'object',
     properties: {
-      evaluations: {
+      results: {
         type: 'array',
         items: {
           type: 'object',
           properties: {
             hookId: { type: 'string' },
-            scores: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  personaId: { type: 'string', enum: ['skeptic', 'impulse', 'critic'] },
-                  score: { type: 'integer', minimum: 0, maximum: 100 },
-                  rationale: { type: 'string' },
-                },
-                required: ['personaId', 'score', 'rationale'],
-              },
-            },
+            personaId: { type: 'string', enum: PERSONA_IDS },
+            score: { type: 'integer', minimum: 0, maximum: 100 },
+            rationale: { type: 'string' },
           },
-          required: ['hookId', 'scores'],
+          required: ['hookId', 'personaId', 'score', 'rationale'],
         },
       },
     },
-    required: ['evaluations'],
+    required: ['results'],
   },
 }
 
@@ -77,15 +75,15 @@ app.post('/api/evaluate', async (req, res) => {
     `Product: ${brief?.product || '(unspecified)'}`,
     `Audience: ${brief?.audience || '(unspecified)'}`,
     '',
-    'Hooks to score (use the exact id):',
-    ...hooks.map((h) => `- ${h.id}: ${h.text || '(empty)'}`),
+    'Score each hook through its assigned persona (use the exact id):',
+    ...hooks.map((h) => `- ${h.id} [persona: ${h.personaId}]: ${h.text || '(empty)'}`),
   ].join('\n')
 
   try {
     const message = await client.messages.create({
       model: MODEL,
       max_tokens: 1024,
-      system: PERSONAS,
+      system: SYSTEM,
       tools: [SCORE_TOOL],
       tool_choice: { type: 'tool', name: 'submit_scores' },
       messages: [{ role: 'user', content: userContent }],
@@ -94,10 +92,7 @@ app.post('/api/evaluate', async (req, res) => {
     const toolUse = message.content.find((b) => b.type === 'tool_use')
     if (!toolUse) return res.status(502).json({ error: 'Model returned no structured scores.' })
 
-    // Normalize: clamp scores and recompute overall server-side for consistency.
-    const evaluations = normalizeEvaluations(toolUse.input.evaluations)
-
-    res.json({ evaluations })
+    res.json({ results: normalizeResults(toolUse.input.results) })
   } catch (err) {
     console.error('Anthropic call failed:', err?.message || err)
     res.status(502).json({ error: 'Upstream model call failed.', detail: err?.message })

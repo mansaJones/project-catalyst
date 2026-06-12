@@ -1,28 +1,70 @@
-import type { CreativeBrief, CreativeHook } from '../types'
+import type { CreativeBrief, CreativeHook, PersonaId } from '../types'
+import { PERSONA_LABELS } from '../personas'
+import type { SampleAd } from '../samples'
 
 interface Props {
   brief: CreativeBrief
   hooks: CreativeHook[]
-  loading?: boolean
+  activePersonas: PersonaId[]
+  personaOrder: PersonaId[]
+  samples: SampleAd[]
+  sampleImage: string | null
+  loading: boolean
+  canAddHook: boolean
   onBriefChange: (brief: CreativeBrief) => void
-  onHookChange: (id: string, text: string) => void
+  onToggleActivePersona: (id: PersonaId) => void
+  onAddHook: () => void
+  onRemoveHook: (id: string) => void
+  onHookTextChange: (id: string, text: string) => void
+  onHookPersonaChange: (id: string, personaId: PersonaId) => void
+  onLoadSample: (ad: SampleAd) => void
   onEvaluate: () => void
 }
 
-export function CreativeInputBoard({
-  brief,
-  hooks,
-  loading = false,
-  onBriefChange,
-  onHookChange,
-  onEvaluate,
-}: Props) {
+export function CreativeInputBoard(props: Props) {
+  const {
+    brief, hooks, activePersonas, personaOrder, samples, sampleImage, loading, canAddHook,
+    onBriefChange, onToggleActivePersona, onAddHook, onRemoveHook,
+    onHookTextChange, onHookPersonaChange, onLoadSample, onEvaluate,
+  } = props
+
   return (
     <section className="panel p-6 sm:p-8">
-      <p className="kicker">01 · Input</p>
-      <h2 className="panel-title mt-1">Creative Input Board</h2>
-      <p className="mt-2 text-sm text-[var(--color-text)]">
-        Describe the offer, then drop in three competing hooks.
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="kicker">01 · Input</p>
+          <h2 className="panel-title mt-1">Creative Input Board</h2>
+        </div>
+        <label className="block">
+          <span className="field-label mb-1 block">Load sample</span>
+          <select
+            className="field"
+            value=""
+            onChange={(e) => {
+              const ad = samples.find((s) => s.id === e.target.value)
+              if (ad) onLoadSample(ad)
+            }}
+          >
+            <option value="" disabled>Choose an ad…</option>
+            {samples.map((s) => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {sampleImage && (
+        <img
+          src={sampleImage}
+          alt="Sample ad creative"
+          className="mt-4 w-full border border-[var(--color-light)] object-cover"
+          style={{ maxHeight: 220 }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+        />
+      )}
+
+      <p className="mt-4 text-sm text-[var(--color-text)]">
+        Describe the offer, pick which personas are in play, then assign one to each hook.
       </p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -44,17 +86,85 @@ export function CreativeInputBoard({
         </Field>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-5">
+        <span className="field-label mb-2 block">Active personas</span>
+        <div className="flex flex-wrap gap-2">
+          {personaOrder.map((id) => {
+            const on = activePersonas.includes(id)
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onToggleActivePersona(id)}
+                className="px-3 py-1 text-xs"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px',
+                  border: '1px solid ' + (on ? 'var(--color-orange-btn)' : 'var(--color-light)'),
+                  background: on ? 'var(--color-orange-btn)' : 'var(--color-white)',
+                  color: on ? 'var(--color-white)' : 'var(--color-muted)',
+                }}
+                title={PERSONA_LABELS[id].blurb}
+              >
+                {PERSONA_LABELS[id].name}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        <span className="field-label block">Hooks</span>
         {hooks.map((h, i) => (
-          <Field key={h.id} label={`Hook ${i + 1}`}>
+          <div key={h.id} className="border border-[var(--color-light)] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="field-label">Hook {i + 1}</span>
+              <div className="flex items-center gap-2">
+                <select
+                  className="field"
+                  style={{ width: 'auto', padding: '6px 8px' }}
+                  value={h.personaId}
+                  onChange={(e) => onHookPersonaChange(h.id, e.target.value as PersonaId)}
+                >
+                  {activePersonas.map((pid) => (
+                    <option key={pid} value={pid}>{PERSONA_LABELS[pid].name}</option>
+                  ))}
+                </select>
+                {hooks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveHook(h.id)}
+                    aria-label={`Remove hook ${i + 1}`}
+                    className="px-2 py-1 text-sm text-[var(--color-muted)] hover:text-[var(--color-orange-deep)]"
+                    style={{ border: '1px solid var(--color-light)' }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
             <textarea
-              className="field min-h-[58px] resize-y"
+              className="field min-h-[56px] resize-y"
               value={h.text}
               placeholder="One ad angle…"
-              onChange={(e) => onHookChange(h.id, e.target.value)}
+              onChange={(e) => onHookTextChange(h.id, e.target.value)}
             />
-          </Field>
+          </div>
         ))}
+        {canAddHook && (
+          <button
+            type="button"
+            onClick={onAddHook}
+            className="text-xs"
+            style={{
+              fontFamily: 'var(--font-display)', textTransform: 'uppercase', letterSpacing: '1px',
+              color: 'var(--color-orange-btn)', border: '1px solid var(--color-light)', padding: '8px 14px',
+            }}
+          >
+            + Add hook
+          </button>
+        )}
       </div>
 
       <button onClick={onEvaluate} disabled={loading} className="btn-brand mt-6">
