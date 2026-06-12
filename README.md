@@ -1,29 +1,30 @@
 # Project Catalyst
 
-> Pressure-test ad creative against synthetic buyer personas, then preview an automated 7-day budget reallocation — before spending a dollar.
+> Pressure-test ad creative against a panel of synthetic buyer personas — assign a persona to each hook and see how it scores, before spending a dollar.
 
 [![CI](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml/badge.svg)](https://github.com/mansaJones/project-catalyst/actions/workflows/ci.yml)
 
 **Live demo → [project-catalyst-fhep.onrender.com](https://project-catalyst-fhep.onrender.com/)**
 
-A self-contained React sandbox that mocks two stages of a paid-media workflow:
-scoring ad copy against synthetic buyer personas, and visualizing a simulated
-7-day budget reallocation across Meta, Google, and LinkedIn — all before
-spending a dollar in a live auction.
+A self-contained React sandbox for paid-media creative testing: describe an
+offer, write competing ad hooks, assign each hook one of seven synthetic buyer
+personas, and get an instant scored critique of every hook through its persona's
+lens — all before a dollar hits a live auction.
 
-The persona scoring and budget curves are **deterministic simulations, not
-machine-learning models**: same input, same output, zero latency. That's a
-deliberate tradeoff to keep the hosted demo free and reproducible. The scoring
-backend is swappable, so the same UI can run on real Claude calls instead (see
-[Running with the Claude backend](#running-with-the-claude-backend)).
+Scoring is a **deterministic simulation, not a machine-learning model**: same
+input, same output, zero latency. That's a deliberate tradeoff to keep the
+hosted demo free and reproducible. The scoring backend is swappable, so the same
+UI can run on real Claude calls instead (see [Running with the Claude
+backend](#running-with-the-claude-backend)).
 
-![Project Catalyst — the rebranded app showing synthetic persona scores and the simulated 7-day budget allocator](docs/screenshot.png)
+![Project Catalyst — the rebranded app: persona panel, per-hook persona assignment, and scored results](docs/screenshot.png)
 
 ## Features
 
-- **Creative Input Board** — capture a product/audience brief and three competing ad hooks.
-- **Synthetic Persona Evaluation** — score each hook through three buyer lenses (the Skeptic / CFO, the Impulse Buyer / executive, the Feature Critic / product).
-- **Budget Allocator** — a scripted 7-day model that drifts spend toward the strongest-scoring channel.
+- **Creative Input Board** — capture a product/audience brief, add or remove ad hooks (1–6), and load ready-made sample ads.
+- **Seven synthetic personas** — the Skeptic (CFO), Impulse Buyer (executive), Feature Critic (product), Bargain Hunter, Brand Loyalist, Researcher, and Trend Seeker. Choose which are in play, then assign one to each hook.
+- **Per-hook evaluation** — each hook is scored 0–100 through its assigned persona, with a one-line rationale.
+- **Sample ad presets** — three brand-styled ad concepts (B2B SaaS, DTC, fintech) that load a brief, persona mapping, hooks, and a creative image.
 - **Swappable scoring engine** — deterministic rule engine by default; a Claude-backed evaluator behind the same interface.
 
 ## Run it
@@ -31,7 +32,7 @@ backend is swappable, so the same UI can run on real Claude calls instead (see
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test         # 15 unit tests (Vitest)
+npm test         # 14 unit tests (Vitest)
 npm run build    # typecheck (tsc) + production build
 ```
 
@@ -46,25 +47,27 @@ local API server that holds the key). The key never reaches the browser.
 
 ## Architecture
 
-The scoring backend sits behind a one-method `PersonaEvaluator` interface, so
-the rule engine and the Claude evaluator are interchangeable and the UI never
-changes. Swapping backends is a single line in `src/personas/index.ts`.
+The scoring backend sits behind a one-method `PersonaEvaluator` interface, so the
+rule engine and the Claude evaluator are interchangeable and the UI never
+changes. Each hook carries the single persona assigned to it; the engine scores
+every hook through its own persona. Swapping backends is a single line in
+`src/personas/index.ts`.
 
 | Path | What it is |
 |------|------------|
-| `src/types.ts` | Shared domain types (briefs, hooks, scores). |
+| `src/types.ts` | Shared domain types (brief, hooks, results). |
 | `src/personas/PersonaEvaluator.ts` | The evaluation **interface** — the swap seam. |
-| `src/personas/ruleEngine.ts` | Deterministic keyword/rule scorer (default backend). |
+| `src/personas/ruleEngine.ts` | Deterministic 7-persona keyword/rule scorer (default backend). |
 | `src/personas/llmEvaluator.ts` | Claude-backed scorer; posts to the local API. |
 | `src/personas/index.ts` | Selects the active backend (`VITE_USE_LLM`). |
-| `src/budget/simulate.ts` | Scripted 7-day budget reallocation model. |
+| `src/samples.ts` | The three sample ad presets. |
 | `server/index.mjs` | Local Express API holding the Anthropic key. |
-| `src/components/` | The three UI modules. |
+| `src/components/` | UI modules (input board, results panel). |
 | `src/App.tsx` | State wiring. |
 
 ## Stack
 
-React 19 · TypeScript · Vite · Tailwind CSS v4 · Recharts · Vitest ·
+React 19 · TypeScript · Vite · Tailwind CSS v4 · Vitest ·
 Express + Anthropic SDK (optional backend) · GitHub Actions CI · deployed on Render.
 
 Styled to the Mansa Tech brand (Oswald / Ubuntu, burnt-orange on near-black ink).
