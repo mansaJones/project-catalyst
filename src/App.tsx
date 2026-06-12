@@ -87,6 +87,21 @@ export default function App() {
 
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="space-y-6">
+          <section className="panel p-6 sm:p-8">
+            <p className="kicker">00 · About</p>
+            <h2 className="panel-title mt-1">How it works</h2>
+            <p className="mt-3 text-sm text-[var(--color-text)]" style={{ lineHeight: 1.7 }}>
+              Project Catalyst is a synthetic-persona sandbox for testing paid-media creative before you
+              spend. Describe your product and audience, write up to three competing ad hooks, and choose
+              which of seven buyer personas — from the cost-focused Skeptic to the FOMO-driven Trend Seeker —
+              should weigh in. Every hook is scored 0–100 through each active persona with a one-line
+              rationale, so you can see which angle resonates with whom. Then pick a winner and open the Ad
+              Studio, which turns the hook into a ready-to-review mockup for Google Search, Instagram/Meta,
+              and display formats — with deterministic copy by default, or Claude-written copy and
+              AI-generated layouts when the model backend is enabled.
+            </p>
+          </section>
+
           <div ref={inputRef}>
           <CreativeInputBoard
             brief={brief}
