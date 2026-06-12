@@ -19,6 +19,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [sampleImage, setSampleImage] = useState<string | null>(null)
   const [adHookId, setAdHookId] = useState<string | null>(null)
+  const [sampleTick, setSampleTick] = useState(0)
 
   const toggleActivePersona = (id: PersonaId) =>
     setActivePersonas((prev) => {
@@ -41,6 +42,7 @@ export default function App() {
     setError(null)
     setSampleImage(ad.image)
     setAdHookId(null)
+    setSampleTick((n) => n + 1)
   }
 
   const handleEvaluate = async () => {
@@ -58,8 +60,12 @@ export default function App() {
   const toggleAd = (hid: string) => setAdHookId((cur) => (cur === hid ? null : hid))
   const adHook = hooks.find((h) => h.id === adHookId) ?? null
 
+  const inputRef = useRef<HTMLDivElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
   const studioRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (sampleTick) inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [sampleTick])
   useEffect(() => {
     if (results.length) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [results])
@@ -81,6 +87,7 @@ export default function App() {
 
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="space-y-6">
+          <div ref={inputRef}>
           <CreativeInputBoard
             brief={brief}
             hooks={hooks}
@@ -96,6 +103,7 @@ export default function App() {
             onLoadSample={loadSample}
             onEvaluate={handleEvaluate}
           />
+          </div>
 
           {error && (
             <div
