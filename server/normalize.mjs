@@ -9,7 +9,7 @@ export const clamp = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)
  * string, persona preserved.
  */
 export function normalizeResults(rawResults) {
-  return (rawResults ?? []).map((r) => ({
+  return (Array.isArray(rawResults) ? rawResults : []).map((r) => ({
     hookId: r.hookId,
     personaId: r.personaId,
     score: clamp(r.score),

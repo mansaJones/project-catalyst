@@ -113,10 +113,11 @@ ${active.map((id) => `- ${id}: ${PERSONAS[id]}`).join('\n')}`
 
   try {
     const message = await client.messages.create({
-      model: MODEL, max_tokens: 2048, system,
+      model: MODEL, max_tokens: 4096, system,
       tools: [SCORE_TOOL], tool_choice: { type: 'tool', name: 'submit_scores' },
       messages: [{ role: 'user', content: userContent }],
     })
+    if (message.stop_reason === 'max_tokens') console.warn('evaluate truncated at max_tokens — results may be malformed')
     const toolUse = message.content.find((b) => b.type === 'tool_use')
     if (!toolUse) return res.status(502).json({ error: 'Model returned no structured scores.' })
     res.json({ results: normalizeResults(toolUse.input.results) })
